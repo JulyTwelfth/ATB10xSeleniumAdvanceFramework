@@ -152,10 +152,27 @@ public class AppointmentPageKatalon_PF extends CommonToAllPage {
     }
 
     private void selectProgram(HealthcareProgram program) {
-        switch (program) {
-            case MEDICARE -> clickElement(medicare);
-            case MEDICAID -> clickElement(medicaid);
-            case NONE -> clickElement(none);
+        WebElement programRadio = switch (program) {
+            case MEDICARE -> medicare;
+            case MEDICAID -> medicaid;
+            case NONE -> none;
+        };
+
+        clickElement(programRadio);
+
+        // Medicare is selected by default. On some Linux headless Chrome
+        // versions the click returns normally but leaves that default intact.
+        if (!programRadio.isSelected()) {
+            ((JavascriptExecutor) driver()).executeScript(
+                    "arguments[0].checked = true;" +
+                            "arguments[0].dispatchEvent(new Event('input', {bubbles: true}));" +
+                            "arguments[0].dispatchEvent(new Event('change', {bubbles: true}));",
+                    programRadio);
+        }
+
+        if (!programRadio.isSelected()) {
+            throw new IllegalStateException(
+                    "Healthcare program was not selected: " + program);
         }
     }
 }
