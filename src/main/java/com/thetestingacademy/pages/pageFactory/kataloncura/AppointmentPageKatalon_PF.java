@@ -1,6 +1,7 @@
 package com.thetestingacademy.pages.pageFactory.kataloncura;
 
 import com.thetestingacademy.base.CommonToAllPage;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -23,6 +24,9 @@ public class AppointmentPageKatalon_PF extends CommonToAllPage {
 
     @FindBy(id = "chk_hospotal_readmission")
     private WebElement readmission;
+
+    @FindBy(css = "label[for='chk_hospotal_readmission']")
+    private WebElement readmissionLabel;
 
     @FindBy(id = "radio_program_medicare")
     private WebElement medicare;
@@ -62,17 +66,50 @@ public class AppointmentPageKatalon_PF extends CommonToAllPage {
         selectProgram(program);
         enterInput(visitDate, date);
         visitDate.sendKeys(Keys.TAB);
-        // The Bootstrap date picker closes on an actual click outside the widget.
-        clickElement(comment);
-        enterInput(comment, appointmentComment);
-        waitUntilClickable(bookAppointmentButton).submit();
+        enterComment(appointmentComment);
+        waitForFormState(applyForReadmission, date, appointmentComment);
+
+        // WebElement.submit() lost dynamic checkbox/textarea values on some
+        // ChromeDriver platforms. requestSubmit() uses the browser's native
+        // form validation and serializes the current control values.
+        WebElement submitButton = waitUntilClickable(bookAppointmentButton);
+        ((JavascriptExecutor) driver()).executeScript(
+                "arguments[0].form.requestSubmit(arguments[0]);", submitButton);
         waitFor().until(ExpectedConditions.urlContains("appointment.php#summary"));
         return new ConfirmationPageKatalon_PF(driver());
     }
 
     private void setCheckbox(WebElement checkbox, boolean expectedState) {
+        waitUntilVisible(checkbox);
         if (checkbox.isSelected() != expectedState) {
-            clickElement(checkbox);
+            // Clicking the visible label is more reliable than clicking the small
+            // checkbox input in Linux headless Chrome.
+            clickElement(readmissionLabel);
+        }
+        waitFor().until(ExpectedConditions.elementSelectionStateToBe(checkbox, expectedState));
+    }
+
+    private void waitForFormState(
+            boolean expectedReadmission,
+            String expectedDate,
+            String expectedComment) {
+        waitFor().until(driver -> readmission.isSelected() == expectedReadmission);
+        waitFor().until(driver -> expectedDate.equals(visitDate.getDomProperty("value")));
+        waitFor().until(driver -> expectedComment.equals(comment.getDomProperty("value")));
+    }
+
+    private void enterComment(String value) {
+        // Prefer a real keyboard interaction. Chrome headless can occasionally
+        // drop textarea keystrokes while the legacy date picker loses focus.
+        clickElement(comment);
+        enterInput(comment, value);
+        if (!value.equals(comment.getDomProperty("value"))) {
+            ((JavascriptExecutor) driver()).executeScript(
+                    "arguments[0].value = arguments[1];" +
+                            "arguments[0].dispatchEvent(new Event('input', {bubbles: true}));" +
+                            "arguments[0].dispatchEvent(new Event('change', {bubbles: true}));",
+                    comment,
+                    value);
         }
     }
 
