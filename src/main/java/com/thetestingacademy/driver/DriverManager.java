@@ -11,42 +11,53 @@ import org.openqa.selenium.firefox.FirefoxOptions;
 
 public class DriverManager {
 
-    public static WebDriver driver;
-
     public static WebDriver getDriver() {
-        return driver;
+        return DriverManagerTL.getDriver();
     }
 
     public static void setDriver(WebDriver driver) {
-        DriverManager.driver = driver;
+        DriverManagerTL.setDriver(driver);
     }
 
 
     // When we want to start the browser
     public static void init() {
+            if (getDriver() != null) {
+                return;
+            }
+
             // browser - ? chrome, firefox, edge
             String browser = PropertiesReader.readKey("browser");
             browser = browser.toLowerCase();
+            boolean headless = Boolean.parseBoolean(PropertiesReader.readKey("headless"));
 
             switch (browser){
                 case "edge" :
                     EdgeOptions edgeOptions = new EdgeOptions();
                     edgeOptions.addArguments("--start-maximized");
-                    edgeOptions.addArguments("--guest");
-                    driver = new EdgeDriver(edgeOptions);
+                    if (headless) {
+                        edgeOptions.addArguments("--headless=new", "--window-size=1920,1080");
+                    }
+                    setDriver(new EdgeDriver(edgeOptions));
                     break;
                 case "chrome":
                     ChromeOptions chromeOptions = new ChromeOptions();
                     chromeOptions.addArguments("--start-maximized");
-                    driver = new ChromeDriver(chromeOptions);
+                    if (headless) {
+                        chromeOptions.addArguments("--headless=new", "--window-size=1920,1080");
+                    }
+                    setDriver(new ChromeDriver(chromeOptions));
                     break;
                 case "firefox":
                     FirefoxOptions firefoxOptions = new FirefoxOptions();
                     firefoxOptions.addArguments("--start-maximized");
-                    driver = new FirefoxDriver(firefoxOptions);
+                    if (headless) {
+                        firefoxOptions.addArguments("-headless", "--width=1920", "--height=1080");
+                    }
+                    setDriver(new FirefoxDriver(firefoxOptions));
                     break;
                 default:
-                    System.out.println("Not browser Supported!!!");
+                    throw new IllegalArgumentException("Unsupported browser: " + browser);
             }
 
 
@@ -57,8 +68,8 @@ public class DriverManager {
     // When we want to close the browser
     public static void down(){
         if (getDriver() != null) {
-            driver.quit();
-            driver = null;
+            getDriver().quit();
+            DriverManagerTL.unload();
         }
 
     }

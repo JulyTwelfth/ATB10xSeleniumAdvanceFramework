@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Katalon CURA Regression Suite" verbose="1">
+    <listeners>
+        <listener class-name="com.thetestingacademy.listeners.ScreenshotListener"/>
+    </listeners>
+
+    <test name="Authentication and appointment booking">
+        <classes>
+            <class name="com.thetestingacademy.tests.pageFactory.kataloncura.KatalonLoginTest"/>
+            <class name="com.thetestingacademy.tests.pageFactory.kataloncura.KatalonAppointmentTest"/>
+        </classes>
+    </test>
+</suite>
