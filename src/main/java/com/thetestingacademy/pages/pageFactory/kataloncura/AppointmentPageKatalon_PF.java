@@ -86,6 +86,19 @@ public class AppointmentPageKatalon_PF extends CommonToAllPage {
             // checkbox input in Linux headless Chrome.
             clickElement(readmissionLabel);
         }
+
+        // The CURA page uses a styled Bootstrap checkbox. Some headless Chrome
+        // versions report a successful label click without changing the native
+        // input. Keep the real click above, then use a DOM fallback only when the
+        // requested state was not applied.
+        if (checkbox.isSelected() != expectedState) {
+            ((JavascriptExecutor) driver()).executeScript(
+                    "arguments[0].checked = arguments[1];" +
+                            "arguments[0].dispatchEvent(new Event('input', {bubbles: true}));" +
+                            "arguments[0].dispatchEvent(new Event('change', {bubbles: true}));",
+                    checkbox,
+                    expectedState);
+        }
         waitFor().until(ExpectedConditions.elementSelectionStateToBe(checkbox, expectedState));
     }
 
