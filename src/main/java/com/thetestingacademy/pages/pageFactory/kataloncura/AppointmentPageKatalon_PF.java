@@ -64,10 +64,9 @@ public class AppointmentPageKatalon_PF extends CommonToAllPage {
         new Select(waitUntilVisible(facility)).selectByVisibleText(facilityName);
         setCheckbox(readmission, applyForReadmission);
         selectProgram(program);
-        enterInput(visitDate, date);
-        visitDate.sendKeys(Keys.TAB);
+        enterDate(date);
         enterComment(appointmentComment);
-        waitForFormState(applyForReadmission, date, appointmentComment);
+        verifyFormState(applyForReadmission, date, appointmentComment);
 
         // WebElement.submit() lost dynamic checkbox/textarea values on some
         // ChromeDriver platforms. requestSubmit() uses the browser's native
@@ -102,13 +101,35 @@ public class AppointmentPageKatalon_PF extends CommonToAllPage {
         waitFor().until(ExpectedConditions.elementSelectionStateToBe(checkbox, expectedState));
     }
 
-    private void waitForFormState(
+    private void verifyFormState(
             boolean expectedReadmission,
             String expectedDate,
             String expectedComment) {
-        waitFor().until(driver -> readmission.isSelected() == expectedReadmission);
-        waitFor().until(driver -> expectedDate.equals(visitDate.getDomProperty("value")));
-        waitFor().until(driver -> expectedComment.equals(comment.getDomProperty("value")));
+        boolean actualReadmission = readmission.isSelected();
+        String actualDate = visitDate.getDomProperty("value");
+        String actualComment = comment.getDomProperty("value");
+
+        if (actualReadmission != expectedReadmission) {
+            throw new IllegalStateException(
+                    "Readmission state mismatch. Expected: " + expectedReadmission
+                            + ", actual: " + actualReadmission);
+        }
+        if (!expectedDate.equals(actualDate)) {
+            throw new IllegalStateException(
+                    "Visit date mismatch. Expected: '" + expectedDate
+                            + "', actual: '" + actualDate + "'");
+        }
+        if (!expectedComment.equals(actualComment)) {
+            throw new IllegalStateException(
+                    "Comment mismatch. Expected: '" + expectedComment
+                            + "', actual: '" + actualComment + "'");
+        }
+    }
+
+    private void enterDate(String value) {
+        enterInput(visitDate, value);
+        visitDate.sendKeys(Keys.TAB);
+        setDomValueIfNeeded(visitDate, value);
     }
 
     private void enterComment(String value) {
@@ -116,12 +137,16 @@ public class AppointmentPageKatalon_PF extends CommonToAllPage {
         // drop textarea keystrokes while the legacy date picker loses focus.
         clickElement(comment);
         enterInput(comment, value);
-        if (!value.equals(comment.getDomProperty("value"))) {
+        setDomValueIfNeeded(comment, value);
+    }
+
+    private void setDomValueIfNeeded(WebElement element, String value) {
+        if (!value.equals(element.getDomProperty("value"))) {
             ((JavascriptExecutor) driver()).executeScript(
                     "arguments[0].value = arguments[1];" +
                             "arguments[0].dispatchEvent(new Event('input', {bubbles: true}));" +
                             "arguments[0].dispatchEvent(new Event('change', {bubbles: true}));",
-                    comment,
+                    element,
                     value);
         }
     }
